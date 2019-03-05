@@ -25,132 +25,101 @@ class image_converter:
 
   def callback(self,data):
     try:
+      # tranform ROS image message into opencv image
       cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
       print(e)
 
     global  ret, mtx, dist, rvecs, tvecs
 
-   
-    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+    # aruco basic setting
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
     parameters = aruco.DetectorParameters_create()
-    corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+
+    # convert the image 
+    cv_image_gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+
+    # detect maker configuraiton
+    corners, ids, rejectedImgPoints = aruco.detectMarkers(cv_image_gray, aruco_dict, parameters=parameters)
 
     if np.all(ids != None):
-       rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners[0], 0.05, mtx, dist)
-       topleftX = corners[0][0][0][0]
-       topleftY = corners[0][0][0][1]
+      # pose estimation
+      # 0.19: markerLength, mtx: cameraMatrix, dist: distortion coefficients
+      # rvec: 
+      rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners[0], 0.19, mtx, dist)
 
-       toprightX = corners[0][0][1][0]
-       toprightY = corners[0][0][1][1]
+      # read corners informatio
+      topleftX = corners[0][0][0][0]
+      topleftY = corners[0][0][0][1]
 
-       bottomleftX = corners[0][0][2][0]
-       bottomlextY = corners[0][0][2][1]
+      toprightX = corners[0][0][1][0]
+      toprightY = corners[0][0][1][1]
 
-       bottomrightX = corners[0][0][3][0]
-       bottomrightY = corners[0][0][3][1]
+      bottomleftX = corners[0][0][2][0]
+      bottomlextY = corners[0][0][2][1]
 
-       # expected information
-       distance = tvec[0][0][2]
-       midpointX = (topleftX  + bottomrightX)/2
-       midpointY = (topleftY + bottomrightY)/2
+      bottomrightX = corners[0][0][3][0]
+      bottomrightY = corners[0][0][3][1]
 
-       print("topleft  corner x {}".format(topleftX))
-       print("topleft corner y {}".format(topleftY))
+      # print corners information
+      print("topleft  corner x {}".format(topleftX))
+      print("topleft corner y {}".format(topleftY))
 
-       print("topright corner x {}".format(toprightX))
-       print("topright corner y {}".format(toprightY))
+      print("topright corner x {}".format(toprightX))
+      print("topright corner y {}".format(toprightY))
 
-       print("bottomleft corner x {}".format(bottomleftX))
-       print("bottomleft corner y {}".format(bottomlextY))
+      print("bottomleft corner x {}".format(bottomleftX))
+      print("bottomleft corner y {}".format(bottomlextY))
 
-       print("bottomright corner x {}".format(bottomrightX))
-       print("bottomright corner y {}".format(bottomrightY))
+      print("bottomright corner x {}".format(bottomrightX))
+      print("bottomright corner y {}".format(bottomrightY))
 
-       print("distance {}".format(distance))
-       print("topleft  corner x {}".format(topleftX))
-       print("topleft corner y {}".format(topleftY))
+      # get pose information
+      distance = tvec[0][0][2]
+      midpointX = (topleftX  + bottomrightX)/2
+      midpointY = (topleftY + bottomrightY)/2
 
-       print("topright corner x {}".format(toprightX))
-       print("topright corner y {}".format(toprightY))
+      # print pose information
+      print("distance {}".format(distance))
+      print("midpoint {}".format(midpoint))
+      print("midpoint {}".format(midpoint))
 
-       print("bottomleft corner x {}".format(bottomleftX))
-       print("bottomleft corner y {}".format(bottomlextY))
+      # draw axis and detected marker
+      aruco.drawAxis(cv_image, mtx, dist, rvec[0], tvec[0], 0.1)
+      aruco.drawDetectedMarkers(cv_image, corners)
 
-       print("bottomright corner x {}".format(bottomrightX))
-       print("bottomright corner y {}".format(bottomrightY))
+      # draw ID text on top of image
+      font = cv2.FONT_HERSHEY_SIMPLEX
+      cv2.putText(cv_image, "Id: " + str(ids), (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
 
-       print("distance {}".format(distance))
+      # incorporate pose information together and print on image
+      dis=Float32MultiArray()
+      dis.layout=(3,1)
+      dis.data=(distance, midpointX, midpointY)
 
-    
+      cv2.imshow("Image window", cv_image)
+      cv2.waitKey(3)
 
-       aruco.drawAxis(cv_image, mtx, dist, rvec[0], tvec[0], 0.1)
-       aruco.drawDetectedMarkers(cv_image, corners)
+      # Node Publish - pose information
+      self.distance_pub.publish(dis)
 
-       # draw ID
-       font = cv2.FONT_HERSHEY_SIMPLEX
-       cv2.putText(cv_image, "Id: " + str(ids), (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
-       dis=Float32MultiArray()
-#       dis.layout=(3,1)
-       dis.data=(distance, midpointX, midpointY)
-       self.distance_pub.publish(dis)
-         
-
-    cv2.imshow("Image window", cv_image)
-    cv2.waitKey(3)
-
-    
-
-    try:
-      self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+      # Node Publish - cv_image
+      try:
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
       
-    except CvBridgeError as e:
+      except CvBridgeError as e:
       print(e)
 
 def main(args):
     global  ret, mtx, dist, rvecs, tvecs
-    # termination criteria
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-    objp = np.zeros((6*7,3), np.float32)
-    objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
-
-    # Arrays to store object points and image points from all the images.
-    objpoints = [] # 3d point in real world space
-    imgpoints = [] # 2d points in image plane.
-
-    images = glob.glob('calib_images/*.jpg')
-
-    img_tmp=cv2.imread(images[0])
-    gray_tmp = cv2.cvtColor(img_tmp,cv2.COLOR_BGR2GRAY)
-
-    for fname in images:
-      img = cv2.imread(fname)
-      gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-      # Find the chess board corners
-      ret, corners = cv2.findChessboardCorners(gray, (7,6),None)
-      #print(corners)
-      #print(objpoints)
-
-      # If found, add object points, image points (after refining them)
-      if ret == True:
-        objpoints.append(objp)
-
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-        imgpoints.append(corners2)
-
-        # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (7,6), corners2,ret)
-        
-
-
-    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray_tmp.shape[::-1],None,None)
-
+    # cameraMatrix and distortion coefficients
+    mtx = np.array([[552.1877667, 0. , 289.37921553], [ 0. , 550.98791255 228.87373308], [0. , 0. , 1.]])
+    dist = np.array([[ 1.51623055e-03, 9.03278089e-02, 6.51492926e-03, -9.21777965e-05, -4.29890497e-01]])
+    
     ic = image_converter()
     rospy.init_node('image_converter', anonymous=True)
+
     try:
       rospy.spin()
     except KeyboardInterrupt:
