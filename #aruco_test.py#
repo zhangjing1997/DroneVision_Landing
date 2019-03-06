@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
+import time
 import roslib
 #roslib.load_manifest('my_package')
 import sys
@@ -30,7 +30,7 @@ class image_converter:
     except CvBridgeError as e:
       print(e)
 
-    # Define the aruco dictionary
+    # aruco basic setting
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
     parameters = aruco.DetectorParameters_create()
 
@@ -41,9 +41,13 @@ class image_converter:
     corners, ids, rejectedImgPoints = aruco.detectMarkers(cv_image_gray, aruco_dict, parameters=parameters)
 
     if np.all(ids != None):
+      # pose estimation
       # 0.19: markerLength, mtx: cameraMatrix, dist: distortion coefficients
-      # rvec: rotation vectors, dist: distortion coefficients
-      rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners[0], 0.19, mtx, dist)       # pose estimation
+      # rvec:
+      # cameraMatrix and distortion coefficients
+    mtx = np.array([[552.1877667, 0. , 289.37921553], [ 0. , 550.98791255, 228.87373308], [0. , 0. , 1.]])
+    dist = np.array([[ 1.51623055e-03, 9.03278089e-02, 6.51492926e-03, -9.21777965e-05, -4.29890497e-01]])
+      rvec, tvec,_ = aruco.estimatePoseSingleMarkers(corners[0], 0.19, mtx, dist)
 
       # read corners informatio
       topleftX = corners[0][0][0][0]
@@ -59,27 +63,29 @@ class image_converter:
       bottomrightY = corners[0][0][3][1]
 
       # print corners information
-      print("topleft  corner x {}".format(topleftX))
-      print("topleft corner y {}".format(topleftY))
+      # print("topleft  corner x {}".format(topleftX))
+      # print("topleft corner y {}".format(topleftY))
 
-      print("topright corner x {}".format(toprightX))
-      print("topright corner y {}".format(toprightY))
+      # print("topright corner x {}".format(toprightX))
+      # print("topright corner y {}".format(toprightY))
 
-      print("bottomleft corner x {}".format(bottomleftX))
-      print("bottomleft corner y {}".format(bottomlextY))
+      # print("bottomleft corner x {}".format(bottomleftX))
+      # print("bottomleft corner y {}".format(bottomlextY))
 
-      print("bottomright corner x {}".format(bottomrightX))
-      print("bottomright corner y {}".format(bottomrightY))
+      # print("bottomright corner x {}".format(bottomrightX))
+      # print("bottomright corner y {}".format(bottomrightY))
 
       # get pose information
-      distance = tvec[0][0][2]
+      cor_x = tvec[0][0][0]
+      cor_y = tvec[0][0][1]
+      cor_z = tvec[0][0][2]
+      print("x=",cor_x)
+      print("y=",cor_y)
+      print("z=",cor_z)
+
+      time.sleep(2);#delete later
       midpointX = (topleftX  + bottomrightX)/2
       midpointY = (topleftY + bottomrightY)/2
-
-      # print pose information
-      print("midpointX {}".format(midpointX))
-      print("midpointY {}".format(midpointY))
-      print("distance {}".format(distance))
 
       # draw axis and detected marker
       aruco.drawAxis(cv_image, mtx, dist, rvec[0], tvec[0], 0.1)
@@ -89,10 +95,10 @@ class image_converter:
       font = cv2.FONT_HERSHEY_SIMPLEX
       cv2.putText(cv_image, "Id: " + str(ids), (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
 
-      # print on image
+      # incorporate pose information together and print on image
       dis=Float32MultiArray()
-      # dis.layout=(3,1)
-      dis.data=(distance, midpointX, midpointY)
+      #dis.layout=(3,1)
+      dis.data=(cor_x, cor_y, cor_z)
 
       cv2.imshow("Image window", cv_image)
       cv2.waitKey(3)
@@ -105,13 +111,10 @@ class image_converter:
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
       
       except CvBridgeError as e:
-      print(e)
+        print(e)
 
 def main(args):
-
-    # cameraMatrix and distortion coefficients
-    mtx = np.array([[552.1877667, 0. , 289.37921553], [ 0. , 550.98791255 228.87373308], [0. , 0. , 1.]])
-    dist = np.array([[ 1.51623055e-03, 9.03278089e-02, 6.51492926e-03, -9.21777965e-05, -4.29890497e-01]])
+    global  ret, mtx, dist, rvecs, tvecs
     
     ic = image_converter()
     rospy.init_node('image_converter', anonymous=True)
