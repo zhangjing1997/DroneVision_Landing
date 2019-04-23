@@ -1,2 +1,2 @@
-# DroneVision_Duke_2019
-Team project for the course: ME555-Advanced Robotics System Design
+# DroneVision_Landing
+Team project for the Robotics course at Duke: ME555-Advanced Robotics System Design
