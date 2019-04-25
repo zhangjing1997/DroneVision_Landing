@@ -4,7 +4,7 @@ Team project for the Robotics course at Duke: ME555-Advanced Robotics System Des
 ## Vision
 Based on Aruco Marker system, use opencv marker detection algorithm to get the relative distance to the marker in x,y,z three dimensions.
 
-![alt text](https://github.com/zhangjing1997/DroneVision_Landing/blob/master/readme_images/control.png)
+![alt text](https://github.com/zhangjing1997/DroneVision_Landing/blob/master/readme_images/vision.png)
 
 ## Control
 Taking PID as our basic control algorithm, we adapted two control schemes: 
