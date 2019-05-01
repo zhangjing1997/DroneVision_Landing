@@ -1,6 +1,7 @@
 # DroneVision_Landing
 Team project for the Robotics course at Duke: ME555-Advanced Robotics System Design.<br>
-The full presentation link: https://docs.google.com/presentation/d/1sL0ZcYLcJmup_AzdfgekT4j81gzFoDa4-MBUbZfyS4c/edit#slide=id.g56ada96fe9_2_61
+The full presentation link: https://docs.google.com/presentation/d/1sL0ZcYLcJmup_AzdfgekT4j81gzFoDa4-MBUbZfyS4c/edit#slide=id.g56ada96fe9_2_61 <br>
+The full report link: https://www.overleaf.com/5374986177pgjhcvtqrpdj
 
 ## Vision
 Based on Aruco Marker system, use opencv marker detection algorithm to get the relative distance to the marker in x,y,z three dimensions.
